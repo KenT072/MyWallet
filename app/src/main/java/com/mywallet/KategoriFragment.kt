@@ -12,6 +12,7 @@ import com.mywallet.databinding.FragmentKategoriBinding
 import java.util.UUID
 
 // TODO: Rename parameter arguments, choose names that match
+// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
 
@@ -25,12 +26,14 @@ class KategoriFragment : Fragment() {
     private lateinit var binding: FragmentKategoriBinding
     private val arKategori = ArrayList<DcKategori>()
     private lateinit var adapterKategori: AdapterRecView
+    private var posisiEdit = -1
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        // Inflate the layout for this fragment
         binding = FragmentKategoriBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -51,15 +54,38 @@ class KategoriFragment : Fragment() {
         )
 
         binding.spJenis.adapter = adapterJenis
+
         tampilkanData()
+
         binding.btnSimpan.setOnClickListener {
-            tambahData()
+            if (posisiEdit == -1) {
+                tambahData()
+            } else {
+                SavePerubahan()
+            }
+        }
+        binding.btnBatal.setOnClickListener {
+            resetForm()
         }
     }
 
     private fun tampilkanData() {
         binding.rvKategori.layoutManager = LinearLayoutManager(requireContext())
+
         adapterKategori = AdapterRecView(arKategori)
+
+        adapterKategori.setOnItemClickCallback(
+            object : AdapterRecView.OnItemClickCallback {
+                override fun ubahData(pos: Int) {
+                    editData(pos)
+                }
+
+                override fun delData(pos: Int) {
+                    DeleteData(pos)
+                }
+            }
+        )
+
         binding.rvKategori.adapter = adapterKategori
     }
 
@@ -67,10 +93,10 @@ class KategoriFragment : Fragment() {
         val nama = binding.edtNamaKategori.text.toString()
         val jenis = binding.spJenis.selectedItem.toString()
 
-        if (nama.isEmpty()) {
+        if (nama.isBlank()) {
             Toast.makeText(
                 requireContext(),
-                "Nama kategori itu wajib diisi",
+                "Nama kategori harus diisi",
                 Toast.LENGTH_SHORT
             ).show()
             return
@@ -85,13 +111,76 @@ class KategoriFragment : Fragment() {
         arKategori.add(kategori)
         adapterKategori.notifyItemInserted(arKategori.size - 1)
 
-        binding.edtNamaKategori.text.clear()
+        resetForm()
 
         Toast.makeText(
             requireContext(),
             "Kategori berhasil ditambahkan",
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    private fun editData(pos: Int) {
+        posisiEdit = pos
+
+        binding.edtNamaKategori.setText(arKategori[pos].nama)
+
+        if (arKategori[pos].jenis == "Income") {
+            binding.spJenis.setSelection(0)
+        } else {
+            binding.spJenis.setSelection(1)
+        }
+
+        binding.spJenis.isEnabled = false
+        binding.btnSimpan.text = "Update"
+        binding.btnBatal.visibility = View.VISIBLE
+    }
+
+    private fun SavePerubahan() {
+        val nama = binding.edtNamaKategori.text.toString()
+
+        if (nama.isBlank()) {
+            Toast.makeText(
+                requireContext(),
+                "Nama kategori harus diisi",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        arKategori[posisiEdit].nama = nama
+
+        adapterKategori.notifyItemChanged(posisiEdit)
+
+        resetForm()
+
+        Toast.makeText(
+            requireContext(),
+            "Kategori berhasil diubah",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun DeleteData(pos: Int) {
+        arKategori.removeAt(pos)
+        adapterKategori.notifyItemRemoved(pos)
+
+        resetForm()
+
+        Toast.makeText(
+            requireContext(),
+            "Kategori berhasil dihapus",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun resetForm() {
+        posisiEdit = -1
+        binding.edtNamaKategori.text.clear()
+        binding.spJenis.isEnabled = true
+        binding.spJenis.setSelection(0)
+        binding.btnSimpan.text = "Save"
+        binding.btnBatal.visibility = View.GONE
     }
 
     companion object {
